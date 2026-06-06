@@ -28,6 +28,8 @@ class KalshiClient:
     @retry_request()
     def _get(self, path: str, params: Optional[dict] = None) -> dict:
         """Make a GET request with retry/backoff."""
+        # time.sleep(0.005)  # Small delay to avoid hitting rate limits
+
         response = self.client.get(path, params=params)
         response.raise_for_status()
         return response.json()
