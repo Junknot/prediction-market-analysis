@@ -1,12 +1,14 @@
 from collections.abc import Generator
 from typing import Optional
 
+import time
 import httpx
 
 from src.common.client import retry_request
 from src.indexers.kalshi.models import Market, Trade
 
-KALSHI_API_HOST = "https://api.elections.kalshi.com/trade-api/v2"
+# KALSHI_API_HOST = "https://api.elections.kalshi.com/trade-api/v2"
+KALSHI_API_HOST = "https://external-api.kalshi.com/trade-api/v2"
 
 
 class KalshiClient:
@@ -101,6 +103,8 @@ class KalshiClient:
         cursor: Optional[str] = None,
         min_close_ts: Optional[int] = None,
         max_close_ts: Optional[int] = None,
+        status: Optional[str] = None, #Available options: unopened, open, paused, closed, settled
+        mve_filter: Optional[str] = None, #Filter by multivariate events (combos). 'only' returns only multivariate events, 'exclude' excludes multivariate events.
     ) -> Generator[tuple[list[Market], Optional[str]], None, None]:
         while True:
             params = {"limit": limit}
@@ -110,10 +114,48 @@ class KalshiClient:
                 params["min_close_ts"] = min_close_ts
             if max_close_ts is not None:
                 params["max_close_ts"] = max_close_ts
+            if status is not None:
+                params["status"] = status
+            if mve_filter is not None:
+                params["mve_filter"] = mve_filter
 
             data = self._get("/markets", params=params)
 
             markets = [Market.from_dict(m) for m in data.get("markets", [])]
+            cursor = data.get("cursor")
+
+            yield markets, cursor
+
+            if not cursor:
+                break
+
+    def iter_event_nested_markets(
+        self,
+        limit: int = 200,
+        cursor: Optional[str] = None,
+        min_close_ts: Optional[int] = None,
+        max_close_ts: Optional[int] = None,
+        status: Optional[str] = None, #Available options: unopened, open, paused, closed, settled
+        mve_filter: Optional[str] = None, #Filter by multivariate events (combos). 'only' returns only multivariate events, 'exclude' excludes multivariate events.
+    ) -> Generator[tuple[list[Market], Optional[str]], None, None]:
+        while True:
+            params = {"limit": limit}
+            if cursor:
+                params["cursor"] = cursor
+            if min_close_ts is not None:
+                params["min_close_ts"] = min_close_ts
+            if max_close_ts is not None:
+                params["max_close_ts"] = max_close_ts
+            if status is not None:
+                params["status"] = status
+            if mve_filter is not None:
+                params["mve_filter"] = mve_filter
+            
+            params["with_nested_markets"] = "true" # This tells the API to return markets nested within their events
+
+            data = self._get("/events", params=params)
+
+            markets = [Market.from_dict(m | {"event_category": e.get("category", "")}) for e in data.get("events", []) for m in e.get("markets", [])]
             cursor = data.get("cursor")
 
             yield markets, cursor

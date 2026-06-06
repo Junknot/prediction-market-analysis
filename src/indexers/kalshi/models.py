@@ -66,6 +66,7 @@ class Market:
     created_time: Optional[datetime]
     open_time: Optional[datetime]
     close_time: Optional[datetime]
+    event_category: Optional[str] # Category returned by the API, e.g. "Politics", "Sports", etc.
 
     @classmethod
     def from_dict(cls, data: dict) -> "Market":
@@ -108,4 +109,6 @@ class Market:
             created_time=parse_time(data.get("created_time")),
             open_time=parse_time(data.get("open_time")),
             close_time=parse_time(data.get("close_time")),
+            # New fields
+            event_category=data.get("event_category"),
         )

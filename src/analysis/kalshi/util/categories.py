@@ -600,6 +600,25 @@ GROUP_COLORS = {
     "Other": "#aaaaaa",
 }
 
+# Event categories
+EVENT_CATEGORIES_COLORS = {
+    "Mentions": "#4da6ff",
+    "Companies": "#003d99",
+    "Elections": "#ff4444",
+    "Social": "#ff69b4",
+    "Politics": "#cc0000",
+    "Economics": "#00cc44",
+    "Health": "#44dd44",
+    "Commodities": "#8b4513",
+    "World": "#00cccc",
+    "Sports": "#ff9900",
+    "Entertainment": "#9966ff",
+    "Science and Technology": "#00ffff",
+    "Crypto": "#ffff00",
+    "Climate and Weather": "#88ddff",
+    "Financials": "#ffcc00"
+}
+
 
 # SQL expression to extract category from event_ticker
 CATEGORY_SQL = """

@@ -120,6 +120,28 @@ class KalshiTradesIndexer(Indexer):
             finally:
                 client.close()
 
+        # Sequential fetching (for debugging)        
+        # pbar = tqdm(total=len(tickers_to_process), desc="Fetching trades")
+        # for ticker in tickers_to_process:
+        #     try:
+        #         trades_data = fetch_ticker_trades(ticker)
+        #         if trades_data:
+        #             all_trades.extend(trades_data)
+
+        #         pbar.update(1)
+        #         pbar.set_postfix(buffer=len(all_trades), saved=total_trades_saved, last=ticker[-20:])
+
+        #         # Save in batches
+        #         if len(all_trades) >= BATCH_SIZE:
+        #             saved = save_batch(all_trades[:BATCH_SIZE])
+        #             total_trades_saved += saved
+        #             all_trades = all_trades[BATCH_SIZE:]
+
+        #     except Exception as e:
+        #         pbar.update(1)
+        #         tqdm.write(f"Error fetching {ticker}: {e}")
+
+
         # Concurrent fetching
         pbar = tqdm(total=len(tickers_to_process), desc="Fetching trades")
         with ThreadPoolExecutor(max_workers=self._max_workers) as executor:
@@ -144,7 +166,7 @@ class KalshiTradesIndexer(Indexer):
                 except Exception as e:
                     pbar.update(1)
                     tqdm.write(f"Error fetching {ticker}: {e}")
-
+                futures.pop(future, None)
         pbar.close()
 
         # Save remaining
