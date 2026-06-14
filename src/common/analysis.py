@@ -26,6 +26,7 @@ from __future__ import annotations
 import importlib
 import inspect
 import sys
+from datetime import datetime,timedelta
 from abc import ABC, abstractmethod
 from collections.abc import Generator
 from contextlib import contextmanager
@@ -63,6 +64,45 @@ class Analysis(ABC):
     def __init__(self, name: str, description: str):
         self.name = name
         self.description = description
+
+    @staticmethod
+    def _get_date_input(prompt: str) -> datetime.datetime | None:
+        while True:
+            try:
+                date_str = input(prompt)
+
+                if not date_str:
+                    return None
+
+                return datetime.strptime(date_str, "%Y-%m-%d")
+            except ValueError:
+                print("Invalid date format. Please use YYYY-MM-DD (e.g., 2026-03-01)")
+
+    @staticmethod
+    def _get_date_range_query_string() -> tuple[str, datetime.datetime | None, datetime.datetime | None]:
+
+        print("Enter date range for analysis")
+
+        while True:
+            start_date = Analysis._get_date_input("Start date (YYYY-MM-DD), leave blank for no start date: ")
+            end_date = Analysis._get_date_input("End date (YYYY-MM-DD), leave blank for no end date: ")
+
+            if start_date and end_date and start_date > end_date:
+                print("Start date cannot be after end date. Please try again.")
+                continue
+            break
+        
+        query_string = ""
+
+        if start_date:
+            query_string = f"AND close_time >= DATE '{start_date.strftime('%Y-%m-%d')}'"
+            
+        if end_date:
+            next_day = end_date + timedelta(days=1)
+            query_string += f" AND close_time < DATE '{next_day.strftime('%Y-%m-%d')}'"
+
+        return query_string, start_date, end_date
+
 
     @contextmanager
     def progress(self, description: str) -> Generator[None, None, None]:

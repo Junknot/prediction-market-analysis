@@ -35,6 +35,9 @@ class KalshiTradesIndexer(Indexer):
         self._max_ts = max_ts
         self._max_workers = max_workers
 
+        self.client = KalshiClient()
+
+
     def run(self) -> None:
         BATCH_SIZE = 10000
         DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -103,9 +106,8 @@ class KalshiTradesIndexer(Indexer):
 
         def fetch_ticker_trades(ticker: str) -> list[dict]:
             """Fetch trades for a single ticker."""
-            client = KalshiClient()
             try:
-                trades = client.get_market_trades(
+                trades = self.client.get_market_trades(
                     ticker,
                     verbose=False,
                     min_ts=self._min_ts,
@@ -118,7 +120,7 @@ class KalshiTradesIndexer(Indexer):
                     {**asdict(t), "_fetched_at": fetched_at} for t in trades if t.trade_id not in existing_trade_ids
                 ]
             finally:
-                client.close()
+                pass
 
         # Sequential fetching (for debugging)        
         # pbar = tqdm(total=len(tickers_to_process), desc="Fetching trades")
@@ -169,6 +171,8 @@ class KalshiTradesIndexer(Indexer):
                 futures.pop(future, None)
         pbar.close()
 
+
+        self.client.close()
         # Save remaining
         if all_trades:
             total_trades_saved += save_batch(all_trades)
