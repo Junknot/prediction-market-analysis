@@ -64,6 +64,7 @@ class Analysis(ABC):
     def __init__(self, name: str, description: str):
         self.name = name
         self.description = description
+        self.output_type = "2D"
 
     @staticmethod
     def _get_date_input(prompt: str) -> datetime.datetime | None:

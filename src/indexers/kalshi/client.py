@@ -3,7 +3,7 @@ from typing import Optional
 
 from src.common.client import HttpClient
 
-from src.indexers.kalshi.models import Market, Trade
+from src.indexers.kalshi.models import Market, Event, Trade
 
 # KALSHI_API_HOST = "https://api.elections.kalshi.com/trade-api/v2"
 KALSHI_API_HOST = "https://external-api.kalshi.com/trade-api/v2"
@@ -61,10 +61,49 @@ class KalshiClient:
 
         return all_trades
 
+    def get_historical_trades(
+        self,
+        ticker: str,
+        limit: int = 1000,
+        verbose: bool = True,
+        min_ts: Optional[int] = None,
+        max_ts: Optional[int] = None,
+    ) -> list[Trade]:
+        all_trades = []
+        cursor = None
+
+        while True:
+            params = {"ticker": ticker, "limit": limit}
+            if cursor:
+                params["cursor"] = cursor
+            if min_ts is not None:
+                params["min_ts"] = min_ts
+            if max_ts is not None:
+                params["max_ts"] = max_ts
+
+            data = self.http.get("/historical/trades", params=params)
+
+            trades = [Trade.from_dict(t) for t in data.get("trades", [])]
+            if trades:
+                all_trades.extend(trades)
+                if verbose:
+                    print(f"Fetched {len(trades)} trades (total: {len(all_trades)})")
+
+            cursor = data.get("cursor")
+            if not cursor:
+                break
+
+        return all_trades
+
     def list_markets(self, limit: int = 20, **kwargs) -> list[Market]:
         params = {"limit": limit, **kwargs}
         data = self.http.get("/markets", params=params)
         return [Market.from_dict(m) for m in data.get("markets", [])]
+    
+    def list_events(self, limit: int = 200, **kwargs) -> list[Event]:
+        params = {"limit": limit, **kwargs}
+        data = self.http.get("/events", params=params)
+        return [Event.from_dict(e) for e in data.get("events", [])]
 
     def list_all_markets(self, limit: int = 200) -> list[Market]:
         all_markets = []
@@ -119,6 +158,30 @@ class KalshiClient:
 
             if not cursor:
                 break
+                
+    def iter_historical_markets(
+        self,
+        limit: int = 1000,
+        cursor: Optional[str] = None,
+        mve_filter: Optional[str] = "exclude", #Filter by multivariate events (combos). 'only' returns only multivariate events, 'exclude' excludes multivariate events.
+        get_event_categories: bool = True
+    ) -> Generator[tuple[list[Market], Optional[str]], None, None]:
+        while True:
+            params = {"limit": limit}
+            if cursor:
+                params["cursor"] = cursor
+            if mve_filter is not None:
+                params["mve_filter"] = mve_filter
+
+            data = self.http.get("/historical/markets", params=params)
+
+            markets = [Market.from_dict(m) for m in data.get("markets", [])]
+            cursor = data.get("cursor")
+
+            yield markets, cursor
+
+            if not cursor:
+                break
 
     def iter_event_nested_markets(
         self,
@@ -127,7 +190,6 @@ class KalshiClient:
         min_close_ts: Optional[int] = None,
         max_close_ts: Optional[int] = None,
         status: Optional[str] = None, #Available options: unopened, open, paused, closed, settled
-        mve_filter: Optional[str] = None, #Filter by multivariate events (combos). 'only' returns only multivariate events, 'exclude' excludes multivariate events.
     ) -> Generator[tuple[list[Market], Optional[str]], None, None]:
         while True:
             params = {"limit": limit}
@@ -139,14 +201,15 @@ class KalshiClient:
                 params["max_close_ts"] = max_close_ts
             if status is not None:
                 params["status"] = status
-            if mve_filter is not None:
-                params["mve_filter"] = mve_filter
             
             params["with_nested_markets"] = "true" # This tells the API to return markets nested within their events
 
             data = self.http.get("/events", params=params)
 
             markets = [Market.from_dict(m | {"event_category": e.get("category", "")}) for e in data.get("events", []) for m in e.get("markets", [])]
+            # markets = [m | {"event_category": e.get("category", "")} for e in data.get("events", []) for m in e.get("markets", [])]
+            
+            
             cursor = data.get("cursor")
 
             yield markets, cursor

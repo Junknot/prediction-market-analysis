@@ -1,6 +1,7 @@
 .DS_Store
 .env
 
+
 # Python-generated files
 __pycache__/
 *.py[oc]
@@ -29,3 +30,5 @@ fig
 output
 .tmp
 kalshi_companies_markets.csv
+notes
+todo

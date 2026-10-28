@@ -25,7 +25,7 @@ class Trade:
             """Converts string dollar values like '0.5600' to integer cents (56)."""
             if not val:
                 return 0
-            return int(float(val) * 100)
+            return int(round(float(val) * 100))
 
         def parse_float_string_to_int(val: Optional[str]) -> int:
             """Converts string float values like '10.00' to integers (10)."""
@@ -79,7 +79,7 @@ class Market:
             """Converts string dollar values like '0.5600' to integer cents (56)."""
             if not val:
                 return None
-            return int(float(val) * 100)
+            return int(round(float(val) * 100))
 
         def parse_float_string_to_int(val: Optional[str]) -> int:
             """Converts string float values like '10.00' to integers (10)."""
@@ -111,4 +111,22 @@ class Market:
             close_time=parse_time(data.get("close_time")),
             # New fields
             event_category=data.get("event_category"),
+        )
+    
+@dataclass
+class Event:
+    event_ticker: str
+    series_ticker: str
+    sub_title: str
+    title: str
+    category: str
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "Event":
+        return cls(
+            event_ticker=data["event_ticker"],
+            series_ticker=data["series_ticker"],
+            sub_title=data["sub_title"],
+            title=data["title"],
+            category=data.get("category", "")
         )

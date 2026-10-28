@@ -77,6 +77,11 @@ def analyze(name: str | None = None):
         for analysis_cls in analyses:
             instance = analysis_cls()
             print(f"Running: {instance.name}")
+
+            if instance.output_type == "3D":
+                print(f"Skipping 3D analysis: {instance.name} (not supported in batch mode)")
+                continue
+
             saved = instance.save(output_dir, formats=["png", "pdf", "csv", "json", "gif"])
             for fmt, path in saved.items():
                 print(f"  {fmt}: {path}")
@@ -86,10 +91,15 @@ def analyze(name: str | None = None):
         analysis_cls = analyses[choice - 1]
         instance = analysis_cls()
         print(f"\nRunning: {instance.name}\n")
-        saved = instance.save(output_dir, formats=["png", "pdf", "csv", "json", "gif"])
-        print("Saved files:")
-        for fmt, path in saved.items():
-            print(f"  {fmt}: {path}")
+
+        if instance.output_type == "3D":
+            output = instance.run()
+            output.figure.show()
+        else:
+            saved = instance.save(output_dir, formats=["png", "pdf", "csv", "json", "gif"])
+            print("Saved files:")
+            for fmt, path in saved.items():
+                print(f"  {fmt}: {path}")
 
 
 def index():
